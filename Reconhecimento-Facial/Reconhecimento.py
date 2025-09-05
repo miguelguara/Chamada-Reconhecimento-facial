@@ -2,6 +2,9 @@ import cv2
 import requests
 import os
 import json
+import tkinter as tk
+from tkinter import scrolledtext, messagebox, filedialog
+from tkinterdnd2 import DND_FILES, TkinterDnD
 
 API_KEY = "OUTmMmgnd1NZh3QIDYvqAZvD3Rv4cJjS"
 API_SECRET = "TTvZC61AT3b71riYHtspWvU7CrYaNo7k"
@@ -24,6 +27,12 @@ def carregar_tokens():
     else:
         alunos_tokens = {}
 
+
+def log(msg):
+    output_area.configure(state='normal')
+    output_area.insert(tk.END, msg + "\n")
+    output_area.see(tk.END)
+    output_area.configure(state='disabled')
 # ---------------------------
 # Cadastro de alunos
 # ---------------------------
@@ -51,12 +60,24 @@ def cadastrar_alunos():
                 "outer_id": FACESET_ID,
                 "face_tokens": face_token
             })
-            print(f"✅ {nome} cadastrado com sucesso.")
+            log(f"✅ {nome} cadastrado com sucesso.")
         else:
-            print(f"❌ Nenhum rosto detectado em {foto}")
+            log(f"❌ Nenhum rosto detectado em {foto}")
 
     salvar_tokens()
 
+def adicionar_foto(event):
+    caminhos = root.splitlist(event.data)
+    for caminho in caminhos:
+        if os.path.isfile(caminho):
+            nome_arquivo = os.path.basename(caminho)
+            destino = os.path.join("alunos", nome_arquivo)
+            try:
+                with open(caminho, "rb") as f_origem, open(destino, "wb") as f_dest:
+                    f_dest.write(f_origem.read())
+                log(f"📁 Foto adicionada: {nome_arquivo}")
+            except Exception as e:
+                log(f"❌ Erro ao adicionar {nome_arquivo}: {e}")
 
 # ---------------------------
 # Chamada via webcam
@@ -87,11 +108,11 @@ def chamada_webcam():
                 if aluno["confidence"] > 80:
                     token = aluno["face_token"]
                     nome = alunos_tokens.get(token, "Desconhecido")
-                    print(f"✅ {nome} está presente!")
+                    log(f"✅ {nome} está presente!")
                 else:
-                    print("❌ Rosto detectado, mas não corresponde a nenhum aluno.")
+                    log("❌ Rosto detectado, mas não corresponde a nenhum aluno.")
             else:
-                print("❌ Nenhum rosto detectado.")
+                log("❌ Nenhum rosto detectado.")
 
         if cv2.waitKey(1) & 0xFF == 27:  # ESC para sair
             break
@@ -104,5 +125,22 @@ def chamada_webcam():
 # Execução (escolha o que rodar)
 # ---------------------------
 alunos_tokens = {}
-cadastrar_alunos()   # roda uma vez para registrar
-chamada_webcam() 
+
+root = TkinterDnD.Tk()
+root.title("Chamada Escolar - Face++")
+root.geometry("500x400")
+
+tk.Button(root, text="Cadastrar Alunos", width=25, command=cadastrar_alunos).pack(pady=5)
+tk.Button(root, text="Fazer Chamada", width=25, command=chamada_webcam).pack(pady=5)
+
+instrucao = tk.Label(root, text="📌 Arraste fotos dos alunos para esta janela")
+instrucao.pack(pady=5)
+
+output_area = scrolledtext.ScrolledText(root, width=60, height=15, state='disabled')
+output_area.pack(pady=10)
+
+# Ativar Drag & Drop
+root.drop_target_register(DND_FILES)
+root.dnd_bind('<<Drop>>', adicionar_foto)
+
+root.mainloop()

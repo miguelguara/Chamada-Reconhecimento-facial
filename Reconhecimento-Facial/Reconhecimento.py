@@ -6,6 +6,7 @@ import tkinter as tk
 from tkinter import scrolledtext, messagebox, filedialog
 from tkinterdnd2 import DND_FILES, TkinterDnD
 from Limpar_Rostos import limpar_rostos
+import psycopg2
 
 API_KEY = "OUTmMmgnd1NZh3QIDYvqAZvD3Rv4cJjS"
 API_SECRET = "TTvZC61AT3b71riYHtspWvU7CrYaNo7k"
@@ -30,6 +31,15 @@ def carregar_tokens():
         alunos_tokens = {}
 
 
+def conectar_banco():
+    return psycopg2.connect(
+        host="localhost",
+        port=5432,
+        database="alunossesi",
+        user="postgres",      # seu usuário do PostgreSQL
+        password="1234"   # sua senha do PostgreSQL
+    )
+
 def log(msg):
     output_area.configure(state='normal')
     output_area.insert(tk.END, msg + "\n")
@@ -52,7 +62,7 @@ def cadastrar_alunos():
         return
 
     for foto in arquivos:
-        nome = os.path.splitext(foto)[0]
+        nome = os.path.splitext(foto)[0]  # aqui uso como URM
         caminho = os.path.join(pasta, foto)
 
         with open(caminho, "rb") as f:
@@ -67,6 +77,7 @@ def cadastrar_alunos():
             face_token = detect_response["faces"][0]["face_token"]
             alunos_tokens[face_token] = nome
 
+            # Adicionar no FaceSet
             addface_url = "https://api-us.faceplusplus.com/facepp/v3/faceset/addface"
             requests.post(addface_url, data={
                 "api_key": API_KEY,
@@ -74,11 +85,26 @@ def cadastrar_alunos():
                 "outer_id": FACESET_ID,
                 "face_tokens": face_token
             })
-            log(f"✅ {nome} cadastrado com sucesso.")
+
+            # Salvar no banco
+            try:
+                conn = conectar_banco()
+                cur = conn.cursor()
+                sql = "INSERT INTO Alunos (URM, facetoken, presenca) VALUES (%s, %s, %s)"
+                valores = (nome, face_token, False)
+                cur.execute(sql, valores)
+                conn.commit()
+                cur.close()
+                conn.close()
+                log(f"✅ {nome} cadastrado no banco e Face++ com sucesso.")
+            except Exception as e:
+                log(f"❌ Erro ao salvar {nome} no banco: {e}")
+
         else:
             log(f"❌ Nenhum rosto detectado em {foto}")
 
     salvar_tokens()
+
 
 def adicionar_foto(event):
     caminhos = root.splitlist(event.data)

@@ -5,12 +5,14 @@ import json
 import tkinter as tk
 from tkinter import scrolledtext, messagebox, filedialog
 from tkinterdnd2 import DND_FILES, TkinterDnD
+from Limpar_Rostos import limpar_rostos
 
 API_KEY = "OUTmMmgnd1NZh3QIDYvqAZvD3Rv4cJjS"
 API_SECRET = "TTvZC61AT3b71riYHtspWvU7CrYaNo7k"
 FACESET_ID = "ChamadaAlunos"
 
 ARQUIVO_MAPA = "alunos_tokens.json"  # onde salvamos os tokens
+
 
 # ---------------------------
 # Funções auxiliares
@@ -37,9 +39,21 @@ def log(msg):
 # Cadastro de alunos
 # ---------------------------
 def cadastrar_alunos():
-    for foto in os.listdir("alunos"):
+    # caminho absoluto da pasta "alunos", mesmo diretório do script
+    pasta = os.path.join(os.path.dirname(__file__), "alunos")
+
+    if not os.path.exists(pasta):
+        log("❌ Pasta 'alunos' não encontrada.")
+        return
+
+    arquivos = os.listdir(pasta)
+    if not arquivos:
+        log("⚠️ Nenhuma foto encontrada na pasta 'alunos'.")
+        return
+
+    for foto in arquivos:
         nome = os.path.splitext(foto)[0]
-        caminho = os.path.join("alunos", foto)
+        caminho = os.path.join(pasta, foto)
 
         with open(caminho, "rb") as f:
             detect_url = "https://api-us.faceplusplus.com/facepp/v3/detect"
@@ -132,6 +146,7 @@ root.geometry("500x400")
 
 tk.Button(root, text="Cadastrar Alunos", width=25, command=cadastrar_alunos).pack(pady=5)
 tk.Button(root, text="Fazer Chamada", width=25, command=chamada_webcam).pack(pady=5)
+tk.Button(root,text= "Limpar Rostos Da nuvem",width=25,command=limpar_rostos).pack(pady= 5)
 
 instrucao = tk.Label(root, text="📌 Arraste fotos dos alunos para esta janela")
 instrucao.pack(pady=5)

@@ -15,5 +15,6 @@ params = {
     "face_tokens": "RemoveAllFaceTokens"  # remove todos os rostos
 }
 
-response = requests.post(url, data=params).json()
-print(response)
+def limpar_rostos():
+    response = requests.post(url, data=params).json()
+    print(response)

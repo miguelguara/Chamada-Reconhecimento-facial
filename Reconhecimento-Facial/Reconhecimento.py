@@ -140,7 +140,11 @@ def chamada_webcam():
                 response = requests.post(
                     search_url,
                     files={"image_file": f},
-                    data={"api_key": API_KEY, "api_secret": API_SECRET, "outer_id": FACESET_ID}
+                    data={
+                        "api_key": API_KEY,
+                        "api_secret": API_SECRET,
+                        "outer_id": FACESET_ID
+                    }
                 ).json()
 
             if response.get("results"):
@@ -149,6 +153,20 @@ def chamada_webcam():
                     token = aluno["face_token"]
                     nome = alunos_tokens.get(token, "Desconhecido")
                     log(f"✅ {nome} está presente!")
+
+                    # Atualizar no banco de dados
+                    try:
+                        conn = conectar_banco()
+                        cur = conn.cursor()
+                        sql = "UPDATE Alunos SET presenca = TRUE WHERE facetoken = %s"
+                        cur.execute(sql, (token,))
+                        conn.commit()
+                        cur.close()
+                        conn.close()
+                        log(f"📌 Presença de {nome} registrada no banco.")
+                    except Exception as e:
+                        log(f"❌ Erro ao atualizar presença no banco: {e}")
+
                 else:
                     log("❌ Rosto detectado, mas não corresponde a nenhum aluno.")
             else:
